@@ -1,3 +1,65 @@
+local function BypassAnti()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+local lastCFrame
+local stop = false
+local heartbeatConnection
+local cframeConnection
+
+local function start()
+    local character = localPlayer.Character
+    if not character then return end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+
+    if not humanoid or not rootPart then return end
+
+    
+    heartbeatConnection = RunService.Heartbeat:Connect(function()
+        if not stop then
+            lastCFrame = rootPart.CFrame
+        end
+    end)
+
+    
+    cframeConnection = rootPart:GetPropertyChangedSignal("CFrame"):Connect(function()
+        if stop then return end
+        stop = true
+        rootPart.CFrame = lastCFrame
+        RunService.Heartbeat:Wait()
+        stop = false
+    end)
+
+    
+    humanoid.Died:Connect(function()
+        if heartbeatConnection then heartbeatConnection:Disconnect() end
+        if cframeConnection then cframeConnection:Disconnect() end
+    end)
+end
+
+
+localPlayer.CharacterAdded:Connect(function(character)
+    character:WaitForChild("Humanoid")
+    character:WaitForChild("HumanoidRootPart")
+    start()
+end)
+
+
+localPlayer.CharacterRemoving:Connect(function()
+    if heartbeatConnection then heartbeatConnection:Disconnect() end
+    if cframeConnection then cframeConnection:Disconnect() end
+end)
+
+
+if localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid") and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    start()
+end
+ end
+
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
